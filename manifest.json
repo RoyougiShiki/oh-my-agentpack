@@ -1,67 +1,86 @@
 {
-  "$schema": "./manifest.schema.json",
-  "description": "oh-my-agentpack 唯一真源：agent 无关的 CLI/MCP 与全局 skills 清单",
-  "cli": {
-    "codebase-memory-mcp": {
-      "type": "mcp",
-      "install": "curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui",
-      "bin": "~/.local/bin/codebase-memory-mcp",
-      "versionCmd": "codebase-memory-mcp --version",
-      "versionPolicy": "latest",
-      "installedVersion": "0.6.1",
-      "notes": "代码记忆库 MCP；安装脚本来自 DeusData/codebase-memory-mcp"
-    },
-    "opencli": {
-      "type": "cli",
-      "install": "npm install -g @jackwener/opencli",
-      "bin": "~/.npm-global/bin/opencli",
-      "versionCmd": "opencli --version",
-      "versionPolicy": "latest",
-      "installedVersion": "1.8.6",
-      "notes": "浏览器自动化 CLI；配套 skills 见本清单 skills.opencli"
-    },
-    "mineru-open-api": {
-      "type": "cli",
-      "install": "npm install -g mineru-open-api",
-      "bin": "~/.npm-global/bin/mineru-open-api",
-      "versionCmd": "mineru-open-api --version",
-      "versionPolicy": "latest",
-      "installedVersion": "v0.5.9",
-      "notes": "MinerU 文档转换 API CLI；skills.pdf-converter 的依赖"
-    }
+ "$schema": "./manifest.schema.json",
+ "description": "oh-my-agentpack 唯一真源：agent 无关的 CLI/MCP 与全局 skills 清单",
+ "cli": {
+  "codebase-memory-mcp": {
+   "type": "mcp",
+   "install": "curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui",
+   "bin": "~/.local/bin/codebase-memory-mcp",
+   "versionCmd": "codebase-memory-mcp --version",
+   "versionPolicy": "latest",
+   "installedVersion": "0.6.1",
+   "notes": "代码记忆库 MCP；安装脚本来自 DeusData/codebase-memory-mcp"
   },
-  "skills": {
-    "mattpocock": {
-      "type": "vendor",
-      "source": "https://github.com/mattpocock/skills",
-      "sourceVersion": "v1.1.0 (快照于 2026-08-04，commit 未固定)",
-      "localChanges": "裁剪：移除 grill-me / handoff（需要时从上游 skills/productivity/ 恢复）",
-      "depends": [],
-      "notes": "Matt Pocock 工程工作流技能集（grilling/domain-modeling/research/prototype 等 7 项）"
-    },
-    "pdf-converter": {
-      "type": "vendor",
-      "source": "https://github.com/tanis90/pdf-converter-mineru",
-      "sourceVersion": "快照于 2026-08-05（npx skills add 安装，commit 未固定）",
-      "localChanges": "无",
-      "depends": [
-        "mineru-open-api"
-      ],
-      "notes": "MinerU 驱动的文档转 Markdown/Word/HTML 技能",
-      "enabled": true
-    },
-    "opencli": {
-      "type": "vendor",
-      "source": "npm @jackwener/opencli 包内 skills/ 目录",
-      "sourceVersion": "随 CLI 版本（当前 1.8.6）",
-      "localChanges": "去 opencli- 前缀（agent 侧技能名更友好）；仅保留 6 项：adapter-author/autofix/browser/browser-sitemap/sitemap-author/usage",
-      "depends": [
-        "opencli"
-      ],
-      "notes": "opencli 浏览器自动化的配套 skills；更新时先同步上游再比对裁剪"
-    }
+  "opencli": {
+   "type": "cli",
+   "install": "npm install -g @jackwener/opencli",
+   "bin": "~/.npm-global/bin/opencli",
+   "versionCmd": "opencli --version",
+   "versionPolicy": "latest",
+   "installedVersion": "1.8.6",
+   "notes": "浏览器自动化 CLI；配套 skills 见本清单 skills.opencli"
   },
-  "excluded": {
-    "kb-access": "由 ai-knowledge 仓库管理（symlink 指向 .ai-knowledge/skills/opencode-kb-access），本仓库不接管"
+  "mineru-open-api": {
+   "type": "cli",
+   "install": "npm install -g mineru-open-api",
+   "bin": "~/.npm-global/bin/mineru-open-api",
+   "versionCmd": "mineru-open-api --version",
+   "versionPolicy": "latest",
+   "installedVersion": "v0.5.9",
+   "notes": "MinerU 文档转换 API CLI；skills.pdf-converter 的依赖"
+  },
+  "lark-cli": {
+   "type": "cli",
+   "install": "npm install -g @larksuite/cli",
+   "bin": "~/.npm-global/bin/lark-cli",
+   "versionCmd": "lark-cli --version",
+   "versionPolicy": "latest",
+   "installedVersion": "1.0.86",
+   "notes": "飞书官方 CLI（Go 二进制，npm 分发）；配套 skills 见本清单 skills.lark-cli"
   }
+ },
+ "skills": {
+  "mattpocock": {
+   "type": "vendor",
+   "source": "https://github.com/mattpocock/skills",
+   "sourceVersion": "v1.1.0 (快照于 2026-08-04，commit 未固定)",
+   "localChanges": "裁剪：移除 grill-me / handoff（需要时从上游 skills/productivity/ 恢复）",
+   "depends": [],
+   "notes": "Matt Pocock 工程工作流技能集（grilling/domain-modeling/research/prototype 等 7 项）"
+  },
+  "pdf-converter": {
+   "type": "vendor",
+   "source": "https://github.com/tanis90/pdf-converter-mineru",
+   "sourceVersion": "快照于 2026-08-05（npx skills add 安装，commit 未固定）",
+   "localChanges": "无",
+   "depends": [
+    "mineru-open-api"
+   ],
+   "notes": "MinerU 驱动的文档转 Markdown/Word/HTML 技能",
+   "enabled": true
+  },
+  "opencli": {
+   "type": "vendor",
+   "source": "npm @jackwener/opencli 包内 skills/ 目录",
+   "sourceVersion": "随 CLI 版本（当前 1.8.6）",
+   "localChanges": "去 opencli- 前缀（agent 侧技能名更友好）；仅保留 6 项：adapter-author/autofix/browser/browser-sitemap/sitemap-author/usage",
+   "depends": [
+    "opencli"
+   ],
+   "notes": "opencli 浏览器自动化的配套 skills；更新时先同步上游再比对裁剪"
+  },
+  "lark-cli": {
+   "type": "vendor",
+   "source": "https://github.com/larksuite/cli (skills/ 目录)",
+   "sourceVersion": "快照于 2026-08-12（commit 52ab2ea，对应 lark-cli 1.0.86）",
+   "localChanges": "无",
+   "depends": [
+    "lark-cli"
+   ],
+   "notes": "飞书官方 AI Agent Skills 全集（27 项：doc/sheets/base/drive/wiki/im/calendar 等）；由 Windows gh 下载 tarball 解出（WSL 直连 GitHub 不稳定）"
+  }
+ },
+ "excluded": {
+  "kb-access": "由 ai-knowledge 仓库管理（symlink 指向 .ai-knowledge/skills/opencode-kb-access），本仓库不接管"
+ }
 }
