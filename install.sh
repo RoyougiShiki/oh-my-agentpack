@@ -16,15 +16,22 @@ echo ""
 
 # ------------------------------------------------------------
 # 1. 同步 skills（仓库 = 真源，覆盖目标同名目录；不动未列出的项）
+#    manifest 中 enabled=false 的技能跳过（不同机器可选装）
 # ------------------------------------------------------------
 echo "=== [skills] 同步到 $SKILLS_DST ==="
 mkdir -p "$SKILLS_DST"
 CHANGED=0
-for skill in $(python3 -c "
-import json,sys
+SKILLS_ENABLED=$(python3 -c "
+import json
 m=json.load(open('$MANIFEST'))
-print(' '.join(m['skills'].keys()))
-"); do
+print(' '.join(k for k,v in m['skills'].items() if v.get('enabled', True)))
+")
+SKILLS_DISABLED=$(python3 -c "
+import json
+m=json.load(open('$MANIFEST'))
+print(' '.join(k for k,v in m['skills'].items() if not v.get('enabled', True)))
+")
+for skill in $SKILLS_ENABLED; do
     if [ -d "$SKILLS_SRC/$skill" ]; then
         rm -rf "$SKILLS_DST/$skill"
         cp -r "$SKILLS_SRC/$skill" "$SKILLS_DST/$skill"
@@ -34,6 +41,7 @@ print(' '.join(m['skills'].keys()))
         echo "  ✗ $skill: 仓库内缺失（skills/$skill 不存在），跳过"
     fi
 done
+[ -n "$SKILLS_DISABLED" ] && echo "  ⏭ 跳过（enabled=false）: $SKILLS_DISABLED"
 [ "$CHANGED" = "1" ] && echo "  注意: 若 kb-access 等未列出项仍在 ~/.agents/skills/ 中，不受影响"
 
 # ------------------------------------------------------------
@@ -72,12 +80,20 @@ CLI_LIST=$(python3 -c "
 import json
 m=json.load(open('$MANIFEST'))
 for name,info in m['cli'].items():
+    if not info.get('enabled', True):
+        continue
     print(f\"{name}|{info['bin']}|{info['versionCmd']}|{info['install']}\")
+")
+CLI_DISABLED=$(python3 -c "
+import json
+m=json.load(open('$MANIFEST'))
+print(' '.join(k for k,v in m['cli'].items() if not v.get('enabled', True)))
 ")
 while IFS='|' read -r name bin vcmd icmd; do
     [ -z "$name" ] && continue
     install_or_record "$name" "$bin" "$vcmd" "$icmd"
 done <<< "$CLI_LIST"
+[ -n "$CLI_DISABLED" ] && echo "  ⏭ 跳过（enabled=false）: $CLI_DISABLED"
 
 # ------------------------------------------------------------
 # 3. 手工项提醒

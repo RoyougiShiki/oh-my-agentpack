@@ -38,6 +38,19 @@ cd oh-my-agentpack
 - **`installedVersion` 记录"当前实际使用版本"**：每次 `install.sh` 检测并写回 manifest，配合 git history 可追溯"某时间点用的是哪个版本"
 - **skills：vendor 进仓库**（`skills/` 为真源，可能有本地裁剪），每个条目记录**上游仓库地址 + 快照版本 + 裁剪说明**，需要迭代时从上游拉取对比
 
+## 可选安装（不同机器装不同部分）
+
+manifest.json 中每个 CLI 和 skill 都支持 `enabled` 字段（默认 `true`）：
+
+```json
+"opencli": {
+  ...
+  "enabled": false   // 本机不需要浏览器自动化：不装 CLI、不同步其 skills
+}
+```
+
+新机器 clone 后，按需把不需要的项标记 `enabled: false`（只改本机副本，不提交或提交均可），再跑 `./install.sh`，被禁用的项会跳过并打印提示。
+
 ## manifest.json
 
 唯一真源，驱动 install.sh。结构：

@@ -47,7 +47,8 @@
       "depends": [
         "mineru-open-api"
       ],
-      "notes": "MinerU 驱动的文档转 Markdown/Word/HTML 技能"
+      "notes": "MinerU 驱动的文档转 Markdown/Word/HTML 技能",
+      "enabled": true
     },
     "opencli": {
       "type": "vendor",
