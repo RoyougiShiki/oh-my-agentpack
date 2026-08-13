@@ -1,40 +1,99 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": ["cli", "skills"],
-  "properties": {
-    "cli": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "required": ["type", "install", "versionPolicy"],
-        "properties": {
-          "type": { "enum": ["cli", "mcp"] },
-          "install": { "type": "string" },
-          "bin": { "type": "string" },
-          "versionCmd": { "type": "string" },
-          "versionPolicy": { "enum": ["latest"] },
-          "installedVersion": { "type": "string", "description": "当前实际使用版本，追溯用；不用于固定安装" },
-          "enabled": { "type": "boolean", "default": true, "description": "本机是否安装；false = 该机器不需要此项（不同机器可选装）" },
-          "notes": { "type": "string" }
-        }
-      }
-    },
-    "skills": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "required": ["type", "source"],
-        "properties": {
-          "type": { "enum": ["vendor"] },
-          "source": { "type": "string", "description": "上游仓库/包地址" },
-          "sourceVersion": { "type": "string" },
-          "localChanges": { "type": "string", "description": "相对上游的本地裁剪/修改说明" },
-          "depends": { "type": "array", "items": { "type": "string" }, "description": "依赖的 CLI（manifest.cli 中的键名）" },
-          "enabled": { "type": "boolean", "default": true, "description": "本机是否同步；false = 该机器不需要此技能（不同机器可选装）" },
-          "notes": { "type": "string" }
-        }
-      }
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "type": "object",
+ "required": [
+  "cli",
+  "skills"
+ ],
+ "properties": {
+  "cli": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "object",
+    "required": [
+     "type",
+     "install",
+     "versionPolicy"
+    ],
+    "properties": {
+     "type": {
+      "enum": [
+       "cli",
+       "mcp"
+      ]
+     },
+     "install": {
+      "type": "string"
+     },
+     "bin": {
+      "type": "string"
+     },
+     "versionCmd": {
+      "type": "string"
+     },
+     "versionPolicy": {
+      "enum": [
+       "latest"
+      ]
+     },
+     "installedVersion": {
+      "type": "string",
+      "description": "当前实际使用版本，追溯用；不用于固定安装"
+     },
+     "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "本机是否安装；false = 该机器不需要此项（不同机器可选装）"
+     },
+     "notes": {
+      "type": "string"
+     }
     }
+   }
+  },
+  "skills": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "object",
+    "required": [
+     "type",
+     "source"
+    ],
+    "properties": {
+     "type": {
+      "enum": [
+       "vendor",
+       "local"
+      ]
+     },
+     "source": {
+      "type": "string",
+      "description": "上游仓库/包地址"
+     },
+     "sourceVersion": {
+      "type": "string"
+     },
+     "localChanges": {
+      "type": "string",
+      "description": "相对上游的本地裁剪/修改说明"
+     },
+     "depends": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "依赖的 CLI（manifest.cli 中的键名）"
+     },
+     "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "本机是否同步；false = 该机器不需要此技能（不同机器可选装）"
+     },
+     "notes": {
+      "type": "string"
+     }
+    }
+   }
   }
+ }
 }

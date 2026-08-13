@@ -78,6 +78,14 @@
         "lark-cli"
       ],
       "notes": "飞书官方 AI Agent Skills 全集（27 项：doc/sheets/base/drive/wiki/im/calendar 等）；由 Windows gh 下载 tarball 解出（WSL 直连 GitHub 不稳定）"
+    },
+    "goal-draft": {
+      "type": "local",
+      "source": "本地自研（goal 前置起草流程：自主判断+契约补全+确认门）",
+      "sourceVersion": "v1 于 2026-08-14 与 pi-codex-goal 配套设计",
+      "localChanges": "无（本仓库内维护）",
+      "depends": [],
+      "notes": "与 pi-PackgeManager 的 pi-codex-goal 扩展配套：skill 负责起草与确认，扩展负责执行。设计原则：意图式轻量提示（参考 Anthropic/OpenAI 新模型 context engineering 建议）"
     }
   },
   "excluded": {
