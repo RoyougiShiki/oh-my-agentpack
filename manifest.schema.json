@@ -63,12 +63,43 @@
      "type": {
       "enum": [
        "vendor",
-       "local"
-      ]
+       "local",
+       "upstream"
+      ],
+      "description": "vendor/local = 仓内 skills/<名>/ 是复印件，整目录覆盖同步；upstream = 仓内不留复印件，install.sh 装时从 source 取"
      },
      "source": {
       "type": "string",
       "description": "上游仓库/包地址"
+     },
+     "versionPolicy": {
+      "enum": [
+       "pinned",
+       "latest"
+      ],
+      "description": "仅 upstream 用。pinned = 取 ref 固定的 commit；latest = 取上游最新并把实际 commit 写回 installedRef"
+     },
+     "ref": {
+      "type": "string",
+      "description": "仅 upstream 用。pinned 时取这个 commit（勿用 tag，除非确认标签不落后于 main）"
+     },
+     "installedRef": {
+      "type": "string",
+      "description": "仅 upstream 用。上次同步实际取到的 commit，追溯用，由 install.sh 写回"
+     },
+     "buckets": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "仅 upstream 用。上游仓库里要取的子目录（摊平到集合目录下）；未列出的桶不装"
+     },
+     "exclude": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "仅 upstream 用。桶里点名不要的技能名；改这张表需要用户确认"
      },
      "sourceVersion": {
       "type": "string"

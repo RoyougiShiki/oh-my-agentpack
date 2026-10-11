@@ -6,9 +6,9 @@ pi 递归发现该目录下每个含 `SKILL.md` 的子目录，集合只是文�
 **物理位置**：`/mnt/c/Users/h/.agents/skills/mattpocock/`
 （`~/.agents/skills` 是指向 Windows 侧目录的符号链接）
 **来源**：`https://github.com/mattpocock/skills`，快照安装于 2026-08-04（上游 v1.1.0，commit 未固定）
-**落地说明**：项目 `AGENTS.md` → `### Global skill set`；工作流决策见 `docs/adr/0008-*`。
+**落地说明**：项目侧约定落在 `AGENTS.md` → `## Agent skills`（⚠️ 2026-10-08 更正：原文写 `### Global skill set`，该节在各仓 `AGENTS.md` 中并不存在）；工作流决策见 `docs/adr/0008-*`。digital-textbooks 仓的 map/ticket 约定真源 = 该仓 `docs/agents/wayfinder.md`（`docs/agents/issue-tracker.md` 只留一节定位指针）。
 
-## 成员（9 个）
+## 成员（本目录实有 8 个）
 
 | skill | 触发 | 用途 |
 |---|---|---|

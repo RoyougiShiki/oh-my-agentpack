@@ -41,12 +41,20 @@
   },
   "skills": {
     "mattpocock": {
-      "type": "vendor",
+      "type": "upstream",
       "source": "https://github.com/mattpocock/skills",
-      "sourceVersion": "v1.1.0 (快照于 2026-08-04，commit 未固定)",
-      "localChanges": "裁剪：移除 grill-me / handoff（需要时从上游 skills/productivity/ 恢复）",
+      "versionPolicy": "pinned",
+      "ref": "49dd158",
+      "installedRef": "49dd158",
+      "buckets": ["engineering", "productivity"],
+      "exclude": [
+        "implement", "tdd", "code-review", "diagnosing-bugs",
+        "implement-spec", "pr", "wizard", "triage",
+        "codebase-design", "improve-codebase-architecture",
+        "grill-me", "teach", "to-questionnaire"
+      ],
       "depends": [],
-      "notes": "Matt Pocock 工程工作流技能集（grilling/domain-modeling/research/prototype 等 7 项）"
+      "notes": "Matt Pocock 工程工作流技能集。**仓内不存复印件**：install.sh 装时从上游取，取到的技能逐个落到 ~/.agents/skills/mattpocock/<名>/，集合根目录下的文件（含手写的 README.md）安装器一律不写。上游桶：engineering 20 / productivity 7 / in-progress 7 / misc 4（main 49dd158, 2026-10-09）。in-progress 与 misc 不在 buckets 内，勿加。最新标签 v1.3.1(24fe0ef) 比 main 少 46 个提交，按标签取会倒退，所以 ref 记 commit 而非 tag。exclude 前 4 项是已定案不要的（implement 有 goal 驱动、tdd 嫌慢、code-review、diagnosing-bugs）；后 9 项是 ask-matt 路由表指向但尚未决定装不装的，见交接待议 B——改这张表要用户点头。"
     },
     "pdf-converter": {
       "type": "vendor",
@@ -78,14 +86,6 @@
         "lark-cli"
       ],
       "notes": "飞书官方 AI Agent Skills 全集（27 项：doc/sheets/base/drive/wiki/im/calendar 等）；由 Windows gh 下载 tarball 解出（WSL 直连 GitHub 不稳定）"
-    },
-    "goal-draft": {
-      "type": "local",
-      "source": "本地自研（goal 前置起草流程：自主判断+契约补全+确认门）",
-      "sourceVersion": "v1 于 2026-08-14 与 pi-codex-goal 配套设计",
-      "localChanges": "无（本仓库内维护）",
-      "depends": [],
-      "notes": "与 pi-PackgeManager 的 pi-codex-goal 扩展配套：skill 负责起草与确认，扩展负责执行。设计原则：意图式轻量提示（参考 Anthropic/OpenAI 新模型 context engineering 建议）"
     }
   },
   "excluded": {

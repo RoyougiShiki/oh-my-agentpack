@@ -1,48 +1,248 @@
 #!/usr/bin/env bash
 # oh-my-agentpack 安装/同步脚本
 # 职责：同步 skills 到 ~/.agents/skills/ + 安装缺失的 CLI + 记录当前版本到 manifest
+# skills 两种来源：type=vendor 用仓内复印件；type=upstream 装时从上游取（仓内不留复印件）
 # 版本策略：CLI 一律 latest（不固定），installedVersion 仅作追溯记录（随 git history 演进）
+#           upstream skills 默认 pinned 到 manifest.ref，installedRef 记录实际取到的 commit
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="$REPO_DIR/manifest.json"
 SKILLS_SRC="$REPO_DIR/skills"
-SKILLS_DST="${HOME}/.agents/skills"
+SKILLS_DST="${AGENTS_SKILLS_DIR:-${HOME}/.agents/skills}"
+
+ASSUME_YES=0
+SKILLS_ONLY=0
+for arg in "$@"; do
+    case "$arg" in
+        -y|--yes)        ASSUME_YES=1 ;;
+        --skills-only)   SKILLS_ONLY=1 ;;
+        -h|--help)
+            echo "用法: $0 [-y|--yes] [--skills-only] "
+            echo "  -y, --yes        不提问，全按 manifest 里记的策略走"
+            echo "  --skills-only    只同步 skills，不碰 CLI/MCP"
+            echo "  AGENTS_SKILLS_DIR=...  覆盖目标目录（验证用，默认 ~/.agents/skills）"
+            exit 0 ;;
+        *) echo "错误: 未知参数 '$arg'（试试 --help）"; exit 1 ;;
+    esac
+done
 
 echo "=== oh-my-agentpack 安装 ==="
 echo "定位: agent 无关的 CLI/MCP + 全局 skills 清单"
-echo "版本策略: CLI 用 latest；installedVersion 记录当前使用版本供追溯"
+echo "版本策略: CLI 用 latest；upstream skills 用 manifest.ref 锁定的 commit"
 echo ""
 
 # ------------------------------------------------------------
-# 1. 同步 skills（仓库 = 真源，覆盖目标同名目录；不动未列出的项）
+# 1. 同步 skills
+#    type=vendor：仓库 skills/<名>/ = 真源，整目录覆盖目标同名目录
+#    type=upstream：先从上游取齐并校验，再只覆盖取到的技能目录
+#      —— 目标集合根目录下的文件（如手写的 README.md）与未被本次清单管理的
+#         目录一律不写不删；取失败时不改动目标（先删后拷在断网时会清空用户技能）
 #    manifest 中 enabled=false 的技能跳过（不同机器可选装）
 # ------------------------------------------------------------
+
+sync_vendor() {
+    local skill="$1" stype="${2:-vendor}"
+    if [ ! -d "$SKILLS_SRC/$skill" ]; then
+        echo "  ✗ $skill: 仓库内缺失（skills/$skill 不存在），跳过"
+        return
+    fi
+    rm -rf "${SKILLS_DST:?}/$skill"
+    cp -r "$SKILLS_SRC/$skill" "$SKILLS_DST/$skill"
+    echo "  ✓ $skill（$stype，来自仓内复印件）"
+    CHANGED=1
+}
+
+# 取上游内容到 $2 目录，把实际 commit（7 位）打到 stdout；失败返回 1 且不碰目标
+# GitHub 源走 codeload tarball + api 解析编号：本机实测 WSL/Windows 的 git clone 到
+# github.com 三次全挂（TLS 中断 / 443 连不上），而 codeload 与 api.github.com 通。
+# 非 GitHub 源退回 git clone。
+fetch_upstream() {
+    local source="$1" want="$2" dest="$3" slug resolved
+    slug=$(printf '%s' "$source" | sed -e 's#\.git$##' -e 's#^.*github\.com[/:]##')
+    case "$source" in
+        *github.com*)
+            local curl=(curl -fsSL --connect-timeout 15 --max-time 300 --retry 2)
+            if ! resolved=$("${curl[@]}" "https://api.github.com/repos/$slug/commits/$want" \
+                    | python3 -c 'import json,sys;print(json.load(sys.stdin)["sha"][:7])' 2>/dev/null); then
+                echo "      api.github.com 取不到编号 $want（$slug）" >&2
+                return 1
+            fi
+            mkdir -p "$dest"
+            if ! "${curl[@]}" -o "$dest.tgz" "https://codeload.github.com/$slug/tar.gz/$resolved"; then
+                echo "      codeload 下载失败（$slug @ $resolved）" >&2
+                return 1
+            fi
+            tar xzf "$dest.tgz" -C "$dest" --strip-components=1 || { echo "      解包失败" >&2; return 1; }
+            rm -f "$dest.tgz"
+            printf '%s' "$resolved"
+            return 0
+            ;;
+    esac
+    if ! git clone --quiet "$source" "$dest" 2>"$dest.clone.err"; then
+        echo "      上游克隆失败：$source" >&2
+        sed 's/^/        /' "$dest.clone.err" | head -3 >&2
+        return 1
+    fi
+    rm -f "$dest.clone.err"
+    if [ -n "$want" ] && [ "$want" != "HEAD" ] && \
+       ! git -C "$dest" checkout --quiet --detach "$want" 2>"$dest.co.err"; then
+        echo "      上游没有编号 $want" >&2
+        sed 's/^/        /' "$dest.co.err" | head -2 >&2
+        return 1
+    fi
+    rm -f "$dest.co.err"
+    git -C "$dest" rev-parse --short=7 HEAD
+}
+
+sync_upstream() {
+    local skill="$1"
+    local cfg SOURCE POLICY REF BUCKETS EXCLUDE
+    cfg=$(python3 - "$MANIFEST" "$skill" <<'PY'
+import json, sys
+e = json.load(open(sys.argv[1]))["skills"][sys.argv[2]]
+for key, default in (("source", ""), ("versionPolicy", "pinned"), ("ref", "")):
+    print(e.get(key, default))
+print(" ".join(e.get("buckets", [])))
+print(" ".join(e.get("exclude", [])))
+PY
+)
+    { read -r SOURCE; read -r POLICY; read -r REF; read -r BUCKETS; read -r EXCLUDE; } <<<"$cfg"
+
+    if [ -z "$SOURCE" ] || [ -z "$BUCKETS" ]; then
+        echo "  ✗ $skill: manifest 缺 source 或 buckets，跳过（未改动目标）"
+        return
+    fi
+    if [ -z "$REF" ]; then
+        echo "  ✗ $skill: manifest 没记 ref，无法确定取哪个版本（未改动目标）"
+        return
+    fi
+
+    # 交互时让人（或驱动它的 AI）选择取哪版、取哪些桶；回车 = 用 manifest 的值
+    # 注意读 /dev/tty：本函数在被 while read 循环调用，stdin 已被清单占用
+    if [ "$INTERACTIVE" = "1" ]; then
+        echo "  [$skill] 上游 $SOURCE"
+        echo "      manifest 记录: 策略=$POLICY 锁定=$REF 桶=$BUCKETS"
+        printf '      取哪个版本？ [回车=按上面的策略] / l=上游最新 / c=指定编号 > '
+        read -r ans </dev/tty || ans=""
+        case "$ans" in
+            l|L|latest) POLICY=latest ;;
+            c|C) printf '      输入 commit 或 tag > '; read -r REF </dev/tty || REF=""; POLICY=pinned ;;
+        esac
+        printf '      取哪些桶？[回车=%s] > ' "$BUCKETS"
+        read -r ans </dev/tty || ans=""
+        [ -n "$ans" ] && BUCKETS=$ans
+    fi
+
+    local want="$REF"
+    [ "$POLICY" = "latest" ] && want="HEAD"
+
+    local tmp
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' RETURN
+
+    local resolved
+    if ! resolved=$(fetch_upstream "$SOURCE" "$want" "$tmp/repo"); then
+        echo "  ✗ $skill: 取上游失败，已停止 —— 目标 $SKILLS_DST/$skill 一个字没改"
+        echo "      本机已知问题: WSL 直连 github.com 不稳（manifest 记过）。重试或换时段再跑。"
+        return 1
+    fi
+
+    # 先全部暂存到临时目录，一个都不少才开始写目标
+    local staged="$tmp/set" count=0 bucket dir name
+    mkdir -p "$staged"
+    for bucket in $BUCKETS; do
+        if [ ! -d "$tmp/repo/skills/$bucket" ]; then
+            echo "  ✗ $skill: 上游没有桶 skills/$bucket（作者挪过桶位？），已停止 —— 目标没改"
+            return 1
+        fi
+        for dir in "$tmp/repo/skills/$bucket"/*/; do
+            [ -f "${dir}SKILL.md" ] || continue
+            name=$(basename "$dir")
+            case " $EXCLUDE " in *" $name "*) continue ;; esac
+            if [ -e "$staged/$name" ]; then
+                echo "  ✗ $skill: 两个桶里出现同名技能 $name，无法摊平，已停止 —— 目标没改"
+                return 1
+            fi
+            cp -r "$dir" "$staged/$name"
+            count=$((count + 1))
+        done
+    done
+    if [ "$count" = "0" ]; then
+        echo "  ✗ $skill: 上游取到 0 个技能（桶名或排除表写错了？），已停止 —— 目标没改"
+        return 1
+    fi
+
+    mkdir -p "$SKILLS_DST/$skill"
+    for dir in "$staged"/*/; do
+        name=$(basename "$dir")
+        rm -rf "${SKILLS_DST:?}/$skill/$name"
+        cp -r "$dir" "$SKILLS_DST/$skill/$name"
+    done
+
+    # 目标里没被本次清单管起来的东西：点名但不碰
+    local kept="" entry
+    for entry in "$SKILLS_DST/$skill"/*; do
+        [ -e "$entry" ] || continue
+        name=$(basename "$entry")
+        [ -d "$staged/$name" ] && continue
+        kept="$kept $name"
+    done
+
+    python3 - "$MANIFEST" "$skill" "$resolved" <<'PY'
+import json, sys
+path, skill, ref = sys.argv[1:4]
+m = json.load(open(path))
+e = m["skills"][skill]
+if e.get("installedRef") != ref:
+    e["installedRef"] = ref
+    json.dump(m, open(path, "w"), indent=2, ensure_ascii=False)
+    open(path, "a").write("\n")
+    print(f"    manifest.installedRef 已更新: {ref}")
+PY
+    echo "  ✓ $skill（上游 $resolved，写入 $count 只；不碰:$kept）"
+    CHANGED=1
+}
+
 echo "=== [skills] 同步到 $SKILLS_DST ==="
+# 是否提问：必须在进入 read 循环之前判断（进了循环 stdin 就不是终端了）
+INTERACTIVE=0
+if [ "$ASSUME_YES" != "1" ] && [ -t 0 ]; then
+    INTERACTIVE=1
+fi
 mkdir -p "$SKILLS_DST"
 CHANGED=0
-SKILLS_ENABLED=$(python3 -c "
+SKILLS_PLAN=$(python3 -c "
 import json
 m=json.load(open('$MANIFEST'))
-print(' '.join(k for k,v in m['skills'].items() if v.get('enabled', True)))
+for name,info in m['skills'].items():
+    if info.get('enabled', True):
+        print(f\"{name}|{info.get('type','vendor')}\")
 ")
 SKILLS_DISABLED=$(python3 -c "
 import json
 m=json.load(open('$MANIFEST'))
 print(' '.join(k for k,v in m['skills'].items() if not v.get('enabled', True)))
 ")
-for skill in $SKILLS_ENABLED; do
-    if [ -d "$SKILLS_SRC/$skill" ]; then
-        rm -rf "$SKILLS_DST/$skill"
-        cp -r "$SKILLS_SRC/$skill" "$SKILLS_DST/$skill"
-        echo "  ✓ $skill"
-        CHANGED=1
-    else
-        echo "  ✗ $skill: 仓库内缺失（skills/$skill 不存在），跳过"
-    fi
-done
-[ -n "$SKILLS_DISABLED" ] && echo "  ⏭ 跳过（enabled=false）: $SKILLS_DISABLED"
+FAILED=""
+while IFS='|' read -r skill stype; do
+    [ -z "$skill" ] && continue
+    case "$stype" in
+        vendor|local) sync_vendor "$skill" "$stype" || FAILED="$FAILED $skill" ;;
+        upstream)     sync_upstream "$skill"        || FAILED="$FAILED $skill" ;;
+        *)            echo "  ✗ $skill: 未知 type=$stype，跳过" ;;
+    esac
+done <<<"$SKILLS_PLAN"
+[ -n "$SKILLS_DISABLED" ] && echo "  ⏭ 跳过（enabled=false）:$SKILLS_DISABLED"
+[ -n "$FAILED" ] && echo "  ⚠ 这些没同步成功，目标目录保持原样:$FAILED"
 [ "$CHANGED" = "1" ] && echo "  注意: 若 kb-access 等未列出项仍在 ~/.agents/skills/ 中，不受影响"
+echo ""
+
+if [ "$SKILLS_ONLY" = "1" ]; then
+    echo "=== --skills-only：跳过 CLI/MCP 安装 ==="
+    echo "=== 完成 ==="
+    exit 0
+fi
 
 # ------------------------------------------------------------
 # 2. CLI/MCP 安装（缺失才装）+ 版本检测
