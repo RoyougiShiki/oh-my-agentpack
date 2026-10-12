@@ -16,8 +16,10 @@ md5 `f3cbe7c678a552c675d28c799ce58cb1`。
 
 ## 装什么、装到哪个版本
 
-不在这里记，记在 [`../manifest.json`](../manifest.json) 的 `skills.mattpocock`：
-`ref`（要取的 commit）/ `installedRef`（上次实际取到的）/ `buckets` / `exclude`。
+不在这份说明里记，也不在 `../manifest.json` 里当承诺：manifest 的 `skills.mattpocock`（`ref` / `installedRef` / `buckets` / `exclude`）只是**上次用的默认值**，`install.sh` 每次运行都会把默认值念一遍并问你要不要改（取哪版、取哪些桶、装哪几只）。
+
+因此**任何地方都不写「实装几只」「成员表」**——每台机器、每次安装都可能选得不同，写下来那一刻就开始过期。上面归档那份的教训就在这里：它的成员表当时已经是第三回对不上磁盘（快照写 9、集合目录写 8、磁盘实有 14），而那份表正是它教人 `clone` + `cp -r` 手工同步的产物。
+
 机制与升版流程见 [`../README.md`](../README.md) 的「上游型技能（type=upstream）」一节。
 
 ## 项目侧约定

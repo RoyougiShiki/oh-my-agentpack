@@ -66,40 +66,56 @@
        "local",
        "upstream"
       ],
-      "description": "vendor/local = 仓内 skills/<名>/ 是复印件，整目录覆盖同步；upstream = 仓内不留复印件，install.sh 装时从 source 取"
+      "description": "vendor/local = 仓内 skills/<名>/ 是复印件，整目录覆盖同步（local 表示本仓即真源，无上游）；upstream = 仓内不留复印件，install.sh 装时从 source 取"
      },
      "source": {
       "type": "string",
-      "description": "上游仓库/包地址"
+      "description": "上游地址：GitHub 仓库 URL，或 npm:<包名>（从发布包取，可能与仓 main 不一致）"
      },
      "versionPolicy": {
       "enum": [
        "pinned",
        "latest"
       ],
-      "description": "仅 upstream 用。pinned = 取 ref 固定的 commit；latest = 取上游最新并把实际 commit 写回 installedRef"
+      "description": "仅 upstream 用。这是装时的默认值，不是承诺：pinned = 取 ref 那个固定版本；latest = 取上游最新并把实际版本写回 installedRef"
      },
      "ref": {
       "type": "string",
-      "description": "仅 upstream 用。pinned 时取这个 commit（勿用 tag，除非确认标签不落后于 main）"
+      "description": "仅 upstream 用。pinned 时取这个 commit / 包版本（github 源勿用 tag，除非确认标签不落后于 main）"
      },
      "installedRef": {
       "type": "string",
-      "description": "仅 upstream 用。上次同步实际取到的 commit，追溯用，由 install.sh 写回"
+      "description": "仅 upstream 用。上次同步实际取到的版本（commit 或包版本），追溯用，由 install.sh 写回；不代表磁盘上装了哪几只"
+     },
+     "skillsPath": {
+      "type": "string",
+      "default": "skills",
+      "description": "仅 upstream 用。上游仓里放着技能目录的位置；\".\" = 仓库根本身就是一只技能（整包即技能）"
+     },
+     "stripPrefix": {
+      "type": "string",
+      "description": "仅 upstream 用。落地时从技能目录名去掉的前缀（如 opencli-usage → usage）"
      },
      "buckets": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "仅 upstream 用。上游仓库里要取的子目录（摊平到集合目录下）；未列出的桶不装"
+      "description": "仅 upstream 用。skillsPath 下要取的子目录（摊平到集合目录下）；不写 = 取 skillsPath 的直接子目录"
      },
      "exclude": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "仅 upstream 用。桶里点名不要的技能名；改这张表需要用户确认"
+      "description": "仅 upstream 用。默认不要的技能名（取上游时的过滤器，不是卸载表：目标里已有的同名目录不会被删）；改动需要用户确认"
+     },
+     "include": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "仅 upstream 用。默认只要这些技能名（白名单，与 exclude 同时给时先 include 后 exclude）"
      },
      "sourceVersion": {
       "type": "string"
